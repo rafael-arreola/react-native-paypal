@@ -23,6 +23,6 @@ repositories {
 }
 
 dependencies {
-  compile 'com.facebook.react:react-native:0.20.+'
-  compile 'com.paypal.sdk:paypal-android-sdk:2.14.2'
+  compile 'com.facebook.react:react-native:0.46.4'
+  compile 'com.paypal.sdk:paypal-android-sdk:2.15.3'
 }

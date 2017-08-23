@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 
+import com.facebook.react.bridge.ActivityEventListener;
+import com.facebook.react.bridge.BaseActivityEventListener;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -35,6 +37,7 @@ public class PayPal extends ReactContextBaseJavaModule {
 
   public PayPal(ReactApplicationContext reactContext) {
     super(reactContext);
+    reactContext.addActivityEventListener(mActivityEventListener);
   }
 
   @Override
@@ -94,24 +97,29 @@ public class PayPal extends ReactContextBaseJavaModule {
     currentActivity.startService(intent);
   }
 
-  public void handleActivityResult(final int requestCode, final int resultCode, final Intent data) {
-    if (requestCode != paymentIntentRequestCode) { return; }
+  private final ActivityEventListener mActivityEventListener = new BaseActivityEventListener() {
 
-    if (resultCode == Activity.RESULT_OK) {
-      PaymentConfirmation confirm =
-        data.getParcelableExtra(PaymentActivity.EXTRA_RESULT_CONFIRMATION);
-      if (confirm != null) {
-        successCallback.invoke(
-          confirm.toJSONObject().toString(),
-          confirm.getPayment().toJSONObject().toString()
-        );
+    @Override
+    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent intent) {
+      if (requestCode != paymentIntentRequestCode) { return; }
+
+      if (resultCode == Activity.RESULT_OK) {
+        PaymentConfirmation confirm =
+                intent.getParcelableExtra(PaymentActivity.EXTRA_RESULT_CONFIRMATION);
+        if (confirm != null) {
+          successCallback.invoke(
+                  confirm.toJSONObject().toString(),
+                  confirm.getPayment().toJSONObject().toString()
+          );
+        }
+      } else if (resultCode == Activity.RESULT_CANCELED) {
+        errorCallback.invoke(ERROR_USER_CANCELLED);
+      } else if (resultCode == PaymentActivity.RESULT_EXTRAS_INVALID) {
+        errorCallback.invoke(ERROR_INVALID_CONFIG);
       }
-    } else if (resultCode == Activity.RESULT_CANCELED) {
-      errorCallback.invoke(ERROR_USER_CANCELLED);
-    } else if (resultCode == PaymentActivity.RESULT_EXTRAS_INVALID) {
-      errorCallback.invoke(ERROR_INVALID_CONFIG);
-    }
 
-    currentActivity.stopService(new Intent(currentActivity, PayPalService.class));
-  }
+      currentActivity.stopService(new Intent(currentActivity, PayPalService.class));
+    }
+  };
+  
 }
